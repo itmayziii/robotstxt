@@ -7,6 +7,20 @@ import (
 	"testing"
 )
 
+func TestRobot_CanCrawl_throws_an_error_if_absolute_url_provided_but_robot_has_no_url(t *testing.T) {
+	robot := robotstxt.NewRobot("googlebot", "", []string{"/"}, []string{}, []string{}, 0)
+	testRobot(t, robot, []testUrl{
+		{url: "http://www.google.com/auth", crawlable: true, hasError: true},
+	})
+}
+
+func TestRobot_CanCrawl_throws_an_error_if_absolute_url_provided_but_robot_url_does_not_match(t *testing.T) {
+	robot := robotstxt.NewRobot("googlebot", "http://google.com", []string{"/"}, []string{}, []string{}, 0)
+	testRobot(t, robot, []testUrl{
+		{url: "http://www.google.com/auth", crawlable: true, hasError: true},
+	})
+}
+
 func TestRobot_CanCrawl_allows_all_if_nothing_is_disallowed(t *testing.T) {
 	robot := robotstxt.Robot{}
 	testRobot(t, robot, []testUrl{

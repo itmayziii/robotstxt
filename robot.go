@@ -47,11 +47,9 @@ func (robot Robot) CanCrawl(url string) (bool, error) {
 	if parsedUrl.IsAbs() && robot.url == "" {
 		return true, errors.New("absolute URL provided but the robot was not given a URL to validate against")
 	}
-
-	//absoluteUrl := parsedUrl.Scheme + "://" + parsedUrl.Host
-	//if robot.url != absoluteUrl {
-	//	return true, errors.New("absolute URL provided, " + absoluteUrl + ", but it does not match the current robot.url, " + robot.url)
-	//}
+	if parsedUrl.IsAbs() && robot.url != parsedUrl.String() {
+		return true, errors.New("absolute URL provided but the robot URL did not match")
+	}
 
 	// Prepend a leading slash if the url provided does not have one, just one less thing we have to account for later on
 	normalizedPath := parsedUrl.RequestURI()
