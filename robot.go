@@ -1,17 +1,19 @@
-package main
+/*
+Package robotstxt gives a very simple API for determining if a [path] can be crawled by a robot.
+Implementation of the robots exclusion protocol https://en.wikipedia.org/wiki/Robots_exclusion_standard.
+*/
+package robotstxt
 
 import (
 	"errors"
 	netUrl "net/url"
+	"regexp"
 	"strings"
 )
 
-// The directives listed in the robotstxt.txt file apply only to the host, protocol and port number where the file is hosted.
-
-// An optional Unicode BOM (byte order mark) at the beginning of the robotstxt.txt file is ignored.
-
 type Crawler interface {
 	CanCrawl(url string) (bool, error)
+	CrawlDelay() int
 	Sitemaps() []string
 }
 
@@ -20,23 +22,22 @@ type Robot struct {
 	url        string
 	disallowed []string
 	allowed    []string
+	sitemaps   []string
+	crawlDelay int
 }
 
-func NewRobot(name string) Robot {
-	return Robot{name: name}
+func NewRobot(name, url string, disallowed, allowed, sitemaps []string, crawlDelay int) Robot {
+	return Robot{name: name, url: url, disallowed: disallowed, allowed: allowed}
 }
 
-func NewRobotForUrl(name string, url string) Robot {
-	return Robot{name: name, url: url}
-}
-
-// Will return true by default since robots are allowed to crawl unless specifically told not to
 func (robot Robot) CanCrawl(url string) (bool, error) {
-	if robot.disallowed == nil || len(robot.disallowed) == 0 { // Everything is allowed if nothing is disallowed
+	// Everything is allowed if nothing is disallowed
+	if robot.disallowed == nil || len(robot.disallowed) == 0 {
 		return true, nil
 	}
 
-	parsedUrl, err := netUrl.Parse(url) // Url provided must be able to be parsed
+	// Url provided must be able to be parsed
+	parsedUrl, err := netUrl.Parse(url)
 	if err != nil {
 		return true, err
 	}
@@ -46,37 +47,53 @@ func (robot Robot) CanCrawl(url string) (bool, error) {
 	if parsedUrl.IsAbs() && robot.url == "" {
 		return true, errors.New("absolute URL provided but the robot was not given a URL to validate against")
 	}
+
 	//absoluteUrl := parsedUrl.Scheme + "://" + parsedUrl.Host
 	//if robot.url != absoluteUrl {
 	//	return true, errors.New("absolute URL provided, " + absoluteUrl + ", but it does not match the current robot.url, " + robot.url)
 	//}
 
 	// Prepend a leading slash if the url provided does not have one, just one less thing we have to account for later on
-	normalizedPath := parsedUrl.Path
+	normalizedPath := parsedUrl.RequestURI()
 	if !strings.HasPrefix(normalizedPath, "/") {
 		normalizedPath = "/" + normalizedPath
 	}
 
 	// Allow and disallow directives, the most specific rule based on the length of the [path] entry will trump the less specific (shorter) rule
 	// (https://developers.google.com/search/reference/robots_txt#url-matching-based-on-path-values)
-	disallowedLength := urlMatchLength(normalizedPath, robot.disallowed)
-	allowedLength := urlMatchLength(normalizedPath, robot.allowed)
+	disallowedLength, err := urlMatchLength(normalizedPath, robot.disallowed)
+	if err != nil {
+		return true, err
+	}
+	allowedLength, err := urlMatchLength(normalizedPath, robot.allowed)
+	if err != nil {
+		return true, err
+	}
 	return disallowedLength == 0 || allowedLength >= disallowedLength, nil
 }
 
-func urlMatchLength(url string, paths []string) int {
+func urlMatchLength(url string, paths []string) (int, error) {
 	if paths == nil || len(paths) == 0 {
-		return 0
+		return 0, nil
 	}
 
 	matchLength := 0
 	for _, path := range paths {
-		// Ending with a trailing "*" is the same as not doing it at all | lowercase to make it case insensitive per the spec
-		path = strings.ToLower(strings.TrimSuffix(path, "*"))
+		// Handle wildcards
+		if strings.Contains(path, "*") || strings.Contains(path, "$") {
+			expression := strings.Replace(path, "*", "(.*)", 1)
+			regExp, err := regexp.Compile(expression)
+			if err != nil {
+				return 0, errors.New("unable to get length of path " + path)
+			}
+			match := regExp.FindString(url)
+			if match == "" {
+				continue
+			}
 
-		//if strings.Contains(path, "*") {
-		//
-		//}
+			matchLength = len(path)
+			break
+		}
 
 		if strings.HasPrefix(url, path) {
 			matchLength = len(path)
@@ -84,5 +101,5 @@ func urlMatchLength(url string, paths []string) int {
 		}
 	}
 
-	return matchLength
+	return matchLength, nil
 }
