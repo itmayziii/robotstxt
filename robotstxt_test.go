@@ -371,12 +371,14 @@ Sitemap: https://www.dumpsters.com/sitemap-launch-index.xml
 
 func ExampleNewFromFile() {
 	filePath, err := filepath.Abs("./robots.txt")
+	fmt.Println(err)
 	robotsTxt, newFromFileErr := robotstxt.NewFromFile("https://www.dumpsters.com", filePath)
 	fmt.Println(newFromFileErr)
 	canCrawl, err := robotsTxt.CanCrawl("googlebot", "/cms/pages")
 	fmt.Println(canCrawl)
 	fmt.Println(err)
 	// Output:
+	// <nil>
 	// <nil>
 	// false
 	// <nil>

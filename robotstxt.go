@@ -113,7 +113,7 @@ func (robotsTxt robotsTxt) CanCrawl(robotName, url string) (bool, error) {
 	return disallowedLength == 0 || allowedLength >= disallowedLength, nil
 }
 
-// NewFromFile creates an implementaiton of RobotsExclusionProtocol from a local file,
+// NewFromFile creates an implementation of RobotsExclusionProtocol from a local file,
 // or an error if it fails to read the file or parse the file as a valid robots.txt file.
 func NewFromFile(url, path string) (RobotsExclusionProtocol, error) {
 	file, err := os.Open(path)
