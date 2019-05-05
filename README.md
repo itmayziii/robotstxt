@@ -2,7 +2,7 @@
 Package robotstxt implements the Robots Exclusion Protocol, https://en.wikipedia.org/wiki/Robots_exclusion_standard, with a simple API.
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/itmayziii/robotstxt)](https://goreportcard.com/report/github.com/itmayziii/robotstxt)
-[![](https://godoc.org/github.com/itmayziii/robotstxt?status.svg)](https://godoc.org/github.com/itmazyiii/robotstxt)
+[![](https://godoc.org/github.com/itmayziii/robotstxt?status.svg)](https://godoc.org/github.com/itmayziii/robotstxt)
 [![Coverage Status](https://coveralls.io/repos/github/itmayziii/robotstxt/badge.svg)](https://coveralls.io/github/itmayziii/robotstxt)
 
 Link to the GoDocs -> [here](https://godoc.org/github.com/itmayziii/robotstxt).
