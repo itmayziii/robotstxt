@@ -40,8 +40,8 @@ import (
 	"strings"
 )
 
-// Exposes all of the things you would want to know about a robots.txt file without giving direct access to the directives defined.
-// Directives such as allow and disallow are not important for a robot (user-agent) to know about, they are implementation details,
+// RobotsExclusionProtocol exposes all of the things you would want to know about a robots.txt file without giving direct access to the directives
+// defined. Directives such as allow and disallow are not important for a robot (user-agent) to know about, they are implementation details,
 // instead a robot just needs to know if it is allowed to crawl a given path so this interface provides a "CanCrawl" method as opposed to giving you
 // direct access to allow and disallow.
 type RobotsExclusionProtocol interface {
