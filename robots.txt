@@ -1,0 +1,23 @@
+# Robots.txt test file
+# 06/04/2018
+      # Indented comments are allowed
+
+User-agent : *
+Crawl-delay: 5
+Disallow: /cms/
+Disallow: /pricing/frontend
+Disallow: /pricing/admin/ # SPA application built into the site
+Disallow : *?s=lightbox
+Disallow: /se/en$
+Disallow:*/retail/*/frontend/*
+
+Allow: /be/fr_fr/retail/fr/
+
+# Multiple groups with all access
+User-agent: AdsBot-Google
+User-agent: AdsBot-Bing
+Allow: /
+
+# Multiple sitemaps
+Sitemap: https://www.dumpsters.com/sitemap.xml
+Sitemap: https://www.dumpsters.com/sitemap-launch-index.xml
