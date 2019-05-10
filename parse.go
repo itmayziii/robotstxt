@@ -19,7 +19,6 @@ func parse(url string, reader io.Reader) (RobotsExclusionProtocol, error) {
 	lineScanner := bufio.NewScanner(reader)
 	lineScanner.Split(bufio.ScanLines)
 	for lineNumber := 1; lineScanner.Scan(); lineNumber++ {
-		// Everything about the a robots.txt is case insensitive so we just make everything lowercase for easier comparisons.
 		line := strings.TrimSpace(lineScanner.Text())
 
 		if utf8.ValidString(line) == false {
