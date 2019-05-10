@@ -11,9 +11,14 @@ import (
 )
 
 func parse(url string, reader io.Reader) (RobotsExclusionProtocol, error) {
+	normalizedUrl, err := normalizeUrl(url)
+	if err != nil {
+		log.Println(err)
+		return robotsTxt{}, err
+	}
+
 	robotsTxt := robotsTxt{}
 	robots := make(map[string]robot)
-
 	currentUserAgents := make([]string, 0)
 	endUserAgents := false
 	lineScanner := bufio.NewScanner(reader)
@@ -95,7 +100,7 @@ func parse(url string, reader io.Reader) (RobotsExclusionProtocol, error) {
 		}
 	}
 
-	robotsTxt.url = url
+	robotsTxt.url = normalizedUrl
 	robotsTxt.robots = robots
 	return robotsTxt, nil
 }

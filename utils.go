@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 	"log"
+	netUrl "net/url"
 	"regexp"
 	"strings"
 )
@@ -83,4 +84,33 @@ func keys(robots map[string]robot) []string {
 	}
 
 	return keys
+}
+
+// normalizeUrl should return the the proper url of <schema>://<host>:<optional-port>.
+func normalizeUrl(url string) (string, error) {
+	parsedUrl, err := netUrl.Parse(url)
+	if err != nil {
+		return "", err
+	}
+
+	if parsedUrl.Scheme == "" || parsedUrl.Host == "" {
+		return "", errors.New("invalid URL provided for robot, the URL must have a valid schema and host, url = " + url)
+	}
+
+	urlPort := parsedUrl.Port()
+	if urlPort == "" {
+		switch parsedUrl.Scheme {
+		case "http":
+			urlPort = "80"
+			break
+		case "https":
+			urlPort = "443"
+		}
+	}
+	// Give up on trying to use the port since we can't determine it from the Scheme.
+	if urlPort == "" {
+		return parsedUrl.Scheme + "://" + parsedUrl.Host, nil
+	}
+
+	return parsedUrl.Scheme + "://" + parsedUrl.Host + ":" + urlPort, nil
 }

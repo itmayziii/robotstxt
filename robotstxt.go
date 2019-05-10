@@ -90,8 +90,14 @@ func (robotsTxt robotsTxt) CanCrawl(robotName, url string) (bool, error) {
 	if parsedUrl.IsAbs() && robotsTxt.url == "" {
 		return true, errors.New("absolute URL provided but the robot was not given a URL to validate against")
 	}
-	if parsedUrl.IsAbs() && robotsTxt.url != parsedUrl.String() {
-		return true, errors.New("absolute URL provided but the robot URL did not match")
+	if parsedUrl.IsAbs() {
+		normalizedUrl, err := normalizeUrl(parsedUrl.String())
+		if err != nil {
+			log.Println(err)
+		}
+		if robotsTxt.url != normalizedUrl {
+			return true, errors.New("absolute URL provided but the robot URL did not match")
+		}
 	}
 
 	// Prepend a leading slash if the url provided does not have one, just one less thing we have to account for later on
@@ -113,8 +119,7 @@ func (robotsTxt robotsTxt) CanCrawl(robotName, url string) (bool, error) {
 	return disallowedLength == 0 || allowedLength >= disallowedLength, nil
 }
 
-// NewFromFile creates an implementation of RobotsExclusionProtocol from a local file,
-// or an error if it fails to read the file or parse the file as a valid robots.txt file.
+// NewFromFile creates an implementation of RobotsExclusionProtocol from a local file.
 func NewFromFile(url, path string) (RobotsExclusionProtocol, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -126,7 +131,7 @@ func NewFromFile(url, path string) (RobotsExclusionProtocol, error) {
 	return parse(url, file)
 }
 
-// New creates an implementation of RobotsExclusionProtocol or an error if it fails to parse the string as a valid robots.txt file.
+// New creates an implementation of RobotsExclusionProtocol.
 func New(url, robotsTxtContent string) (RobotsExclusionProtocol, error) {
 	reader := strings.NewReader(robotsTxtContent)
 	return parse(url, reader)

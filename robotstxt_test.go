@@ -12,7 +12,7 @@ import (
 func Test_examples_mentioned_in_google_spec(t *testing.T) {
 	// Matches the root and any lower level URL.
 	t.Run("/", func(t *testing.T) {
-		robotsTxt, err := robotstxt.New("", `
+		robotsTxt, err := robotstxt.New("https://www.dumpsters.com", `
 User-Agent: *
 Disallow: /
 `)
@@ -29,7 +29,7 @@ Disallow: /
 
 	// Equivalent to /. The trailing wildcard is ignored
 	t.Run("/*", func(t *testing.T) {
-		robotsTxt, err := robotstxt.New("", `
+		robotsTxt, err := robotstxt.New("https://www.dumpsters.com", `
 User-Agent: *
 Disallow: /*
 `)
@@ -45,7 +45,7 @@ Disallow: /*
 	})
 
 	t.Run("/fish", func(t *testing.T) {
-		robotsTxt, err := robotstxt.New("", `
+		robotsTxt, err := robotstxt.New("https://www.dumpsters.com", `
 User-Agent: *
 Disallow: /fish
 `)
@@ -66,7 +66,7 @@ Disallow: /fish
 
 	// Equivalent to /fish. The trailing wildcard is ignored.
 	t.Run("/fish*", func(t *testing.T) {
-		robotsTxt, err := robotstxt.New("", `
+		robotsTxt, err := robotstxt.New("https://www.dumpsters.com", `
 User-Agent: *
 Disallow: /fish*
 `)
@@ -87,7 +87,7 @@ Disallow: /fish*
 
 	// Equivalent to /fish. The trailing wildcard is ignored.
 	t.Run("/fish/", func(t *testing.T) {
-		robotsTxt, err := robotstxt.New("", `
+		robotsTxt, err := robotstxt.New("https://www.dumpsters.com", `
 User-Agent: *
 Disallow: /fish/
 `)
@@ -104,7 +104,7 @@ Disallow: /fish/
 	})
 
 	t.Run("/*.php", func(t *testing.T) {
-		robotsTxt, err := robotstxt.New("", `
+		robotsTxt, err := robotstxt.New("https://www.dumpsters.com", `
 User-Agent: *
 Disallow: /*.php
 `)
@@ -122,7 +122,7 @@ Disallow: /*.php
 	})
 
 	t.Run("/*.php$", func(t *testing.T) {
-		robotsTxt, err := robotstxt.New("", `
+		robotsTxt, err := robotstxt.New("https://www.dumpsters.com", `
 User-Agent: *
 Disallow: /*.php$
 `)
@@ -139,7 +139,7 @@ Disallow: /*.php$
 	})
 
 	t.Run("/fish*.php", func(t *testing.T) {
-		robotsTxt, err := robotstxt.New("", `
+		robotsTxt, err := robotstxt.New("https://www.dumpsters.com", `
 User-Agent: *
 Disallow: /fish*.php
 `)
@@ -153,10 +153,79 @@ Disallow: /fish*.php
 	})
 }
 
-func Test_NewFromFile(t *testing.T) {
-	filePath, err := filepath.Abs("./robots.txt")
+func TestNew(t *testing.T) {
+	robotsTxt, err := robotstxt.New("https://www.dumpsters.com", `
+# Robots.txt test file
+# 06/04/2018
+      # Indented comments are allowed
+
+User-agent : *
+Crawl-delay: 5
+Disallow: /cms/
+Disallow: /pricing/frontend
+Disallow: /pricing/admin/ # SPA application built into the site
+Disallow : *?s=lightbox
+Disallow: /se/en$
+Disallow:*/retail/*/frontend/*
+
+Allow: /be/fr_fr/retail/fr/
+
+# Multiple groups with all access
+User-agent: AdsBot-Google
+User-agent: AdsBot-Bing
+Allow: /
+
+# Multiple sitemaps
+Sitemap: https://www.dumpsters.com/sitemap.xml
+Sitemap: https://www.dumpsters.com/sitemap-launch-index.xml
+`)
+
+	assert.NotNil(t, robotsTxt)
 	assert.Nil(t, err)
-	robotsTxt, err := robotstxt.NewFromFile("https://www.dumpsters.com", filePath)
+}
+
+func TestNew_fails_if_no_scheme_is_provided(t *testing.T) {
+	_, err := robotstxt.New("www.dumpsters.com", `
+User-Agent: *
+Disallow: /cms
+`)
+	assert.NotNil(t, err)
+}
+
+func TestNew_fails_if_no_host_is_provided(t *testing.T) {
+	_, err := robotstxt.New("https://", `
+User-Agent: *
+Disallow: /cms
+`)
+	assert.NotNil(t, err)
+}
+
+func TestRobotsTxt_CanCrawl(t *testing.T) {
+	robotsTxt, err := robotstxt.New("https://www.dumpsters.com", `
+# Robots.txt test file
+# 06/04/2018
+      # Indented comments are allowed
+
+User-agent : *
+Crawl-delay: 5
+Disallow: /cms/
+Disallow: /pricing/frontend
+Disallow: /pricing/admin/ # SPA application built into the site
+Disallow : *?s=lightbox
+Disallow: /se/en$
+Disallow:*/retail/*/frontend/*
+
+Allow: /be/fr_fr/retail/fr/
+
+# Multiple groups with all access
+User-agent: AdsBot-Google
+User-agent: AdsBot-Bing
+Allow: /
+
+# Multiple sitemaps
+Sitemap: https://www.dumpsters.com/sitemap.xml
+Sitemap: https://www.dumpsters.com/sitemap-launch-index.xml
+`)
 	assert.Nil(t, err)
 
 	testRobot(t, "googlebot", robotsTxt, []testUrl{
@@ -221,13 +290,46 @@ func Test_NewFromFile(t *testing.T) {
 	assert.Equal(t, []string{"https://www.dumpsters.com/sitemap.xml", "https://www.dumpsters.com/sitemap-launch-index.xml"}, robotsTxt.Sitemaps())
 }
 
+func TestRobotsTxt_CanCrawl_fails_if_robot_url_and_given_url_have_different_ports(t *testing.T) {
+	robotsTxt, err := robotstxt.New("https://www.dumpsters.com:4343", `
+User-Agent: *
+Disallow: /cms
+`)
+	assert.Nil(t, err)
+
+	testRobot(t, "googlebot", robotsTxt, []testUrl{
+		{url: "https://www.dumpsters.com:4000/cms", crawlable: true, hasError: true},
+	})
+}
+
+func TestRobotsTxt_CanCrawl_fails_if_robot_url_and_given_url_have_different_schemes(t *testing.T) {
+	robotsTxt, err := robotstxt.New("https://www.dumpsters.com:4000", `
+User-Agent: *
+Disallow: /cms
+`)
+	assert.Nil(t, err)
+
+	testRobot(t, "googlebot", robotsTxt, []testUrl{
+		{url: "http://www.dumpsters.com:4000/cms", crawlable: true, hasError: true},
+	})
+}
+
+func TestNewFromFile(t *testing.T) {
+	filePath, err := filepath.Abs("./robots.txt")
+	assert.Nil(t, err)
+	robotsTxt, err := robotstxt.NewFromFile("https://www.dumpsters.com", filePath)
+
+	assert.NotNil(t, robotsTxt)
+	assert.Nil(t, err)
+}
+
 /*
  *********************************************** START BENCHMARKS ***********************************************
  */
 
-func BenchmarkNew_with_parsing(b *testing.B) {
+func BenchmarkNew(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		robotsTxt, _ := robotstxt.New("", `
+		_, _ = robotstxt.New("https://www.dumpsters.com", `
 # Robots.txt test file
 # 06/04/2018
       # Indented comments are allowed
@@ -252,31 +354,44 @@ Allow: /
 Sitemap: https://www.dumpsters.com/sitemap.xml
 Sitemap: https://www.dumpsters.com/sitemap-launch-index.xml
 `)
-		_, _ = robotsTxt.CanCrawl("Bingbot", "/cms/")
-		_, _ = robotsTxt.CanCrawl("Bingbot", "/cms")
-		_, _ = robotsTxt.CanCrawl("Bingbot", "/cms/pages")
-		_, _ = robotsTxt.CanCrawl("Bingbot", "/cms/pages?products=123")
-		_, _ = robotsTxt.CanCrawl("Bingbot", "/pricing/frontend")
-		_, _ = robotsTxt.CanCrawl("Bingbot", "/pricing/frontend-app")
-		_, _ = robotsTxt.CanCrawl("Bingbot", "/pricing/frontend/product")
-		_, _ = robotsTxt.CanCrawl("Bingbot", "/pricing/admin/product")
-		_, _ = robotsTxt.CanCrawl("Bingbot", "/pricing/admin")
-		_, _ = robotsTxt.CanCrawl("Bingbot", "/pricing?s=lightbox")
-		_, _ = robotsTxt.CanCrawl("Bingbot", "/pricing?s-lightbox&cart=full")
-		_, _ = robotsTxt.CanCrawl("Bingbot", "/pricing?cart=full&s=lightbox")
-		_, _ = robotsTxt.CanCrawl("Bingbot", "/se/en")
-		_, _ = robotsTxt.CanCrawl("Bingbot", "/se/en/")
-		_, _ = robotsTxt.CanCrawl("Bingbot", "/se")
-		_, _ = robotsTxt.CanCrawl("Bingbot", "/se/en/fr")
-		_, _ = robotsTxt.CanCrawl("Bingbot", "/retail/online/frontend")
-		_, _ = robotsTxt.CanCrawl("Bingbot", "/store/retail/online/frontend")
-		_, _ = robotsTxt.CanCrawl("Bingbot", "/retail/online/frontend/pages?page=2")
-		_, _ = robotsTxt.CanCrawl("Bingbot", "/online/frontend/")
 	}
 }
 
-func BenchmarkNew_only_methods(b *testing.B) {
-	robotsTxt, _ := robotstxt.New("", `
+func BenchmarkRobotsTxt_CanCrawl(b *testing.B) {
+	robotsTxt, _ := robotstxt.New("https://www.dumpsters.com", `
+# Robots.txt test file
+# 06/04/2018
+      # Indented comments are allowed
+
+User-agent : *
+Crawl-delay: 5
+Disallow: /cms/
+Disallow: /pricing/frontend
+Disallow: /pricing/admin/ # SPA application built into the site
+Disallow : *?s=lightbox
+Disallow: /se/en$
+Disallow:*/retail/*/frontend/*
+
+Allow: /be/fr_fr/retail/fr/
+
+# Multiple groups with all access
+User-agent: AdsBot-Google
+User-agent: AdsBot-Bing
+Allow: /
+
+# Multiple sitemaps
+Sitemap: https://www.dumpsters.com/sitemap.xml
+Sitemap: https://www.dumpsters.com/sitemap-launch-index.xml
+`)
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		_, _ = robotsTxt.CanCrawl("Bingbot", "/cms/")
+	}
+}
+
+func BenchmarkRobotsTxt_CanCrawl_multiple_times(b *testing.B) {
+	robotsTxt, _ := robotstxt.New("https://www.dumpsters.com", `
 # Robots.txt test file
 # 06/04/2018
       # Indented comments are allowed
@@ -336,7 +451,7 @@ Sitemap: https://www.dumpsters.com/sitemap-launch-index.xml
  */
 
 func ExampleNew() {
-	robotsTxt, _ := robotstxt.New("", `
+	robotsTxt, _ := robotstxt.New("https://www.dumpsters.com", `
 # Robots.txt test file
 # 06/04/2018
       # Indented comments are allowed
