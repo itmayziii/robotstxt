@@ -1,6 +1,7 @@
 package robotstxt
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
@@ -20,6 +21,20 @@ func TestNewFromUrl(t *testing.T) {
 	robotsTxt := <-ch
 
 	assert.Nil(t, robotsTxt.Error)
+}
+
+func ExampleNewFromURL() {
+	ch := make(chan ProtocolResult)
+	go NewFromURL("https://www.dumpsters.com", ch)
+	robotsTxt := <-ch
+
+	fmt.Println(robotsTxt.Error)
+	canCrawl, err := robotsTxt.Protocol.CanCrawl("googlebot", "/bdso/pages")
+	fmt.Println(canCrawl)
+	fmt.Println(err)
+	// <nil>
+	// false
+	// <nil>
 }
 
 func fakeHTML() string {

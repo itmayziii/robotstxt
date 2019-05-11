@@ -8,17 +8,45 @@ Package robotstxt implements the Robots Exclusion Protocol, https://en.wikipedia
 Link to the GoDocs -> [here](https://godoc.org/github.com/itmayziii/robotstxt).
 
 
-## Basic Example
+## Basic Examples
+
+### 1. Creating a robotsTxt with a URL
+This is the most common way to use this package.
 ```go
-    package main
+package main
 
-    import (
-    	"fmt"
-    	"github.com/itmayziii/robotstxt"
-    )
+import (
+    "fmt"
+    "github.com/itmayziii/robotstxt"
+)
 
-    func main () {
-    	robotsTxt, _ := robotstxt.New("", `
+func main () {
+	ch := make(chan robotstxt.ProtocolResult)
+	go robotstxt.NewFromURL("https://www.dumpsters.com", ch)
+	robotsTxt := <-ch
+	
+	fmt.Println(robotsTxt.Error)
+	canCrawl, err := robotsTxt.Protocol.CanCrawl("googlebot", "/bdso/pages")
+	fmt.Println(canCrawl)
+	fmt.Println(err)
+	// <nil>
+	// false
+	// <nil>
+}
+```
+
+### 2. Creating a robotsTxt Manually
+You likely will not be doing this method as you would need to parse get the robots.txt from the server yourself.
+```go
+package main
+
+import (
+    "fmt"
+    "github.com/itmayziii/robotstxt"
+)
+
+func main () {
+    robotsTxt, _ := robotstxt.New("", `
 # Robots.txt test file
 # 06/04/2018
     # Indented comments are allowed
@@ -43,13 +71,13 @@ Allow: /
 Sitemap: https://www.dumpsters.com/sitemap.xml
 Sitemap: https://www.dumpsters.com/sitemap-launch-index.xml
 `)
-        canCrawl, err := robotsTxt.CanCrawl("googlebot", "/cms/pages")
-        fmt.Println(canCrawl)
-        fmt.Println(err)
-        // Output:
-        // false
-        // <nil>
-    }
+    canCrawl, err := robotsTxt.CanCrawl("googlebot", "/cms/pages")
+    fmt.Println(canCrawl)
+    fmt.Println(err)
+    // Output:
+    // false
+    // <nil>
+}
 ```
 
 ## Specification
