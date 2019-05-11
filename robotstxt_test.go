@@ -154,7 +154,7 @@ Disallow: /fish*.php
 }
 
 func TestNew(t *testing.T) {
-	robotsTxt, err := robotstxt.New("https://www.dumpsters.com", `
+	_, err := robotstxt.New("https://www.dumpsters.com", `
 # Robots.txt test file
 # 06/04/2018
       # Indented comments are allowed
@@ -179,8 +179,6 @@ Allow: /
 Sitemap: https://www.dumpsters.com/sitemap.xml
 Sitemap: https://www.dumpsters.com/sitemap-launch-index.xml
 `)
-
-	assert.NotNil(t, robotsTxt)
 	assert.Nil(t, err)
 }
 
@@ -317,10 +315,12 @@ Disallow: /cms
 func TestNewFromFile(t *testing.T) {
 	filePath, err := filepath.Abs("./robots.txt")
 	assert.Nil(t, err)
-	robotsTxt, err := robotstxt.NewFromFile("https://www.dumpsters.com", filePath)
 
-	assert.NotNil(t, robotsTxt)
-	assert.Nil(t, err)
+	ch := make(chan robotstxt.ProtocolResult)
+	go robotstxt.NewFromFile("https://www.dumpsters.com", filePath, ch)
+	protocolResult := <-ch
+
+	assert.Nil(t, protocolResult.Error)
 }
 
 /*
@@ -487,9 +487,13 @@ Sitemap: https://www.dumpsters.com/sitemap-launch-index.xml
 func ExampleNewFromFile() {
 	filePath, err := filepath.Abs("./robots.txt")
 	fmt.Println(err)
-	robotsTxt, newFromFileErr := robotstxt.NewFromFile("https://www.dumpsters.com", filePath)
-	fmt.Println(newFromFileErr)
-	canCrawl, err := robotsTxt.CanCrawl("googlebot", "/cms/pages")
+
+	ch := make(chan robotstxt.ProtocolResult)
+	go robotstxt.NewFromFile("https://www.dumpsters.com", filePath, ch)
+	protocolResult := <-ch
+
+	fmt.Println(protocolResult.Error)
+	canCrawl, err := protocolResult.Protocol.CanCrawl("googlebot", "/cms/pages")
 	fmt.Println(canCrawl)
 	fmt.Println(err)
 	// Output:

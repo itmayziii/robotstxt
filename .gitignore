@@ -1,2 +1,5 @@
 # IDE #
 .idea/
+
+# Build Files #
+coverage.out

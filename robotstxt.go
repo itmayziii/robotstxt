@@ -33,12 +33,18 @@ and port number every time it is asked if a robot "CanCrawl" a path and the path
 package robotstxt
 
 import (
+	"bytes"
 	"errors"
+	"golang.org/x/net/html"
+	"io"
 	"log"
+	"net/http"
 	netUrl "net/url"
 	"os"
 	"strings"
 )
+
+var httpGet = http.Get
 
 // RobotsExclusionProtocol exposes all of the things you would want to know about a robots.txt file without giving direct access to the directives
 // defined. Directives such as allow and disallow are not important for a robot (user-agent) to know about, they are implementation details,
@@ -54,6 +60,77 @@ type RobotsExclusionProtocol interface {
 	URL() string
 	// How long should a robot wait between accessing pages on a site.
 	CrawlDelay(robotName string) int
+}
+
+// ProtocolResult is used for concurrent operations such as NewFromFile and NewFromUrl.
+type ProtocolResult struct {
+	Protocol RobotsExclusionProtocol
+	Error    error
+}
+
+// New creates an implementation of RobotsExclusionProtocol.
+func New(url, robotsTxtContent string) (RobotsExclusionProtocol, error) {
+	reader := strings.NewReader(robotsTxtContent)
+	return parse(url, reader)
+}
+
+// NewFromFile creates an implementation of RobotsExclusionProtocol from a local file.
+func NewFromFile(url, filePath string, ch chan ProtocolResult) {
+	defer close(ch)
+	file, err := os.Open(filePath)
+	if err != nil {
+		log.Println(err)
+		ch <- ProtocolResult{Protocol: robotsTxt{}, Error: err}
+		return
+	}
+	defer safeClose(file)
+
+	robotsTxt, err := parse(url, file)
+	ch <- ProtocolResult{Protocol: robotsTxt, Error: err}
+}
+
+/* NewFromUrl retrieves a robots.txt for a given scheme, host, and an optional port number. According to the spec the robots.txt file must always live
+at the top level directory, https://developers.google.com/search/reference/robots_txt#file-location--range-of-validity,
+so everything that is not the top level is ignored.
+
+The following are examples of only looking at the top level for /robots.txt:
+  Given:                                                  Looks for:
+  https://www.dumpsters.com/pricing/roll-off-dumpsters -> https://www.dumpsters.com/robots.txt
+  https://www.dumpsters.com                            -> https://www.dumpsters.com/robots.txt
+  https://www.dumpsters.com/robots.txt                 -> https://www.dumpsters.com/robots.txt
+*/
+func NewFromUrl(url string, ch chan ProtocolResult) {
+	defer close(ch)
+	parsedUrl, err := netUrl.Parse(url)
+	if err != nil {
+		log.Println(err)
+		ch <- ProtocolResult{Protocol: robotsTxt{}, Error: err}
+		return
+	}
+
+	normalizedUrl := parsedUrl.Scheme + "://" + parsedUrl.Hostname()
+	port := parsedUrl.Port()
+	if port != "" {
+		normalizedUrl = parsedUrl.Scheme + "://" + parsedUrl.Hostname() + ":" + port
+	}
+
+	resp, err := httpGet(normalizedUrl + "/robots.txt")
+	if err != nil {
+		log.Println(err)
+		ch <- ProtocolResult{Protocol: robotsTxt{}, Error: err}
+		return
+	}
+	defer safeClose(resp.Body)
+
+	robotsTxtBody, err := parseRobotsTxtBody(resp.Body)
+	if err != nil {
+		log.Println(err)
+		ch <- ProtocolResult{Protocol: robotsTxt{}, Error: err}
+		return
+	}
+
+	robotsTxt, err := New(url, robotsTxtBody)
+	ch <- ProtocolResult{Protocol: robotsTxt, Error: err}
 }
 
 type robotsTxt struct {
@@ -87,9 +164,6 @@ func (robotsTxt robotsTxt) CanCrawl(robotName, url string) (bool, error) {
 
 	// Basically if the URL provided is a full URL with a schema then the robot URL must match completely.
 	// https://developers.google.com/search/reference/robots_txt#file-location--range-of-validity
-	if parsedUrl.IsAbs() && robotsTxt.url == "" {
-		return true, errors.New("absolute URL provided but the robot was not given a URL to validate against")
-	}
 	if parsedUrl.IsAbs() {
 		normalizedUrl, err := normalizeUrl(parsedUrl.String())
 		if err != nil {
@@ -119,24 +193,6 @@ func (robotsTxt robotsTxt) CanCrawl(robotName, url string) (bool, error) {
 	return disallowedLength == 0 || allowedLength >= disallowedLength, nil
 }
 
-// NewFromFile creates an implementation of RobotsExclusionProtocol from a local file.
-func NewFromFile(url, path string) (RobotsExclusionProtocol, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-	defer safeClose(file)
-
-	return parse(url, file)
-}
-
-// New creates an implementation of RobotsExclusionProtocol.
-func New(url, robotsTxtContent string) (RobotsExclusionProtocol, error) {
-	reader := strings.NewReader(robotsTxtContent)
-	return parse(url, reader)
-}
-
 func (robotsTxt robotsTxt) CrawlDelay(robotName string) int {
 	robot, _ := findMatchingRobot(robotName, robotsTxt.robots)
 	return robot.crawlDelay
@@ -148,4 +204,70 @@ func (robotsTxt robotsTxt) Sitemaps() []string {
 
 func (robotsTxt robotsTxt) URL() string {
 	return robotsTxt.url
+}
+
+func parseRobotsTxtBody(readCloser io.ReadCloser) (string, error) {
+	node, err := html.Parse(readCloser)
+	if err != nil {
+		return "", err
+	}
+
+	body, err := getBody(node)
+	if err != nil {
+		return "", err
+	}
+
+	bodyString, err := renderNode(body)
+	if err != nil {
+		return "", err
+	}
+
+	bodyTokenizer := html.NewTokenizer(strings.NewReader(bodyString))
+	bodyText := ""
+Loop:
+	for {
+		tt := bodyTokenizer.Next()
+		switch tt {
+		case html.ErrorToken:
+			break Loop
+		case html.TextToken:
+			bodyText += string(bodyTokenizer.Text())
+		}
+
+	}
+
+	return bodyText, nil
+}
+
+func getBody(doc *html.Node) (*html.Node, error) {
+	var body *html.Node
+	var parseHtmlForBody func(*html.Node)
+	hasMatch := false
+	parseHtmlForBody = func(node *html.Node) {
+		if node.Type == html.ElementNode && node.Data == "body" {
+			body = node
+			hasMatch = true
+		}
+		if !hasMatch {
+			for c := node.FirstChild; c != nil; c = c.NextSibling {
+				parseHtmlForBody(c)
+			}
+		}
+	}
+	parseHtmlForBody(doc)
+
+	if body == nil {
+		return nil, errors.New("missing <body> in the node tree")
+	}
+	return body, nil
+}
+
+func renderNode(n *html.Node) (string, error) {
+	var buf bytes.Buffer
+	w := io.Writer(&buf)
+	err := html.Render(w, n)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
