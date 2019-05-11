@@ -16,7 +16,7 @@ func TestNewFromUrl(t *testing.T) {
 	}
 
 	ch := make(chan ProtocolResult)
-	go NewFromUrl("https://www.dumpsters.com", ch)
+	go NewFromURL("https://www.dumpsters.com", ch)
 	robotsTxt := <-ch
 
 	assert.Nil(t, robotsTxt.Error)

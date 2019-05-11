@@ -62,7 +62,7 @@ type RobotsExclusionProtocol interface {
 	CrawlDelay(robotName string) int
 }
 
-// ProtocolResult is used for concurrent operations such as NewFromFile and NewFromUrl.
+// ProtocolResult is used for concurrent operations such as NewFromFile and NewFromURL.
 type ProtocolResult struct {
 	Protocol RobotsExclusionProtocol
 	Error    error
@@ -89,7 +89,8 @@ func NewFromFile(url, filePath string, ch chan ProtocolResult) {
 	ch <- ProtocolResult{Protocol: robotsTxt, Error: err}
 }
 
-/* NewFromUrl retrieves a robots.txt for a given scheme, host, and an optional port number. According to the spec the robots.txt file must always live
+/*
+NewFromURL retrieves a robots.txt for a given scheme, host, and an optional port number. According to the spec the robots.txt file must always live
 at the top level directory, https://developers.google.com/search/reference/robots_txt#file-location--range-of-validity,
 so everything that is not the top level is ignored.
 
@@ -99,7 +100,7 @@ The following are examples of only looking at the top level for /robots.txt:
   https://www.dumpsters.com                            -> https://www.dumpsters.com/robots.txt
   https://www.dumpsters.com/robots.txt                 -> https://www.dumpsters.com/robots.txt
 */
-func NewFromUrl(url string, ch chan ProtocolResult) {
+func NewFromURL(url string, ch chan ProtocolResult) {
 	defer close(ch)
 	parsedUrl, err := netUrl.Parse(url)
 	if err != nil {
