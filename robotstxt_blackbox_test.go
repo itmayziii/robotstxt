@@ -1,7 +1,6 @@
 package robotstxt
 
 import (
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net/http"
@@ -18,23 +17,22 @@ func TestNewFromUrl(t *testing.T) {
 
 	ch := make(chan ProtocolResult)
 	go NewFromURL("https://www.dumpsters.com", ch)
-	robotsTxt := <-ch
+	protocol := <-ch
 
-	assert.Nil(t, robotsTxt.Error)
+	assert.Nil(t, protocol.Error)
 }
 
-func ExampleNewFromURL() {
-	ch := make(chan ProtocolResult)
-	go NewFromURL("https://www.dumpsters.com", ch)
-	robotsTxt := <-ch
-
-	fmt.Println(robotsTxt.Error)
-	canCrawl, err := robotsTxt.Protocol.CanCrawl("googlebot", "/bdso/pages")
-	fmt.Println(canCrawl)
-	fmt.Println(err)
-	// <nil>
-	// false
-	// <nil>
+func TestNew_utf8_validation(t *testing.T) {
+	old := validateUTF8
+	defer func() { validateUTF8 = old }()
+	validateUTF8 = func(s string) bool {
+		return false
+	}
+	_, err := New("https://www.dumpsters.com", `
+# This file is mocked to have invalid UTF8
+`)
+	assert.NotNil(t, err)
+	assert.Equal(t, "invalid encoding detected on line 1, all characters must be UTF-8 encoded", err.Error())
 }
 
 func fakeHTML() string {

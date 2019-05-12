@@ -402,6 +402,20 @@ func ExampleNewFromFile() {
 	// <nil>
 }
 
+func ExampleNewFromURL() {
+	ch := make(chan robotstxt.ProtocolResult)
+	go robotstxt.NewFromURL("https://www.dumpsters.com", ch)
+	robotsTxt := <-ch
+
+	fmt.Println(robotsTxt.Error)
+	canCrawl, err := robotsTxt.Protocol.CanCrawl("googlebot", "/bdso/pages")
+	fmt.Println(canCrawl)
+	fmt.Println(err)
+	// <nil>
+	// false
+	// <nil>
+}
+
 func ExampleRobotsTxt_CanCrawl() {
 	robotsTxt, _ := robotstxt.New("https://www.dumpsters.com", `
 # Robots.txt test file

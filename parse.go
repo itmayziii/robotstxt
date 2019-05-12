@@ -11,6 +11,8 @@ import (
 	"unicode/utf8"
 )
 
+var validateUTF8 = utf8.ValidString
+
 func parse(url string, reader io.Reader) (RobotsExclusionProtocol, error) {
 	normalizedUrl, err := normalizeUrl(url)
 	if err != nil {
@@ -27,7 +29,7 @@ func parse(url string, reader io.Reader) (RobotsExclusionProtocol, error) {
 	for lineNumber := 1; lineScanner.Scan(); lineNumber++ {
 		line := strings.TrimSpace(lineScanner.Text())
 
-		if utf8.ValidString(line) == false {
+		if validateUTF8(line) == false {
 			err := errors.New("invalid encoding detected on line " + strconv.Itoa(lineNumber) + ", all characters must be UTF-8 encoded")
 			log.Println(err)
 			return robotsTxt, err
