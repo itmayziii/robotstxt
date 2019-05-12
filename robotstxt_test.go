@@ -378,9 +378,15 @@ Sitemap: https://www.dumpsters.com/sitemap-launch-index.xml
 	canCrawl, err := robotsTxt.CanCrawl("googlebot", "/cms/pages")
 	fmt.Println(canCrawl)
 	fmt.Println(err)
+	fmt.Println(robotsTxt.Sitemaps())
+	fmt.Println(robotsTxt.URL())
+	fmt.Println(robotsTxt.CrawlDelay("googlebot"))
 	// Output:
 	// false
 	// <nil>
+	// [https://www.dumpsters.com/sitemap.xml https://www.dumpsters.com/sitemap-launch-index.xml]
+	// https://www.dumpsters.com:443
+	// 5s
 }
 
 func ExampleNewFromFile() {
@@ -395,25 +401,37 @@ func ExampleNewFromFile() {
 	canCrawl, err := protocolResult.Protocol.CanCrawl("googlebot", "/cms/pages")
 	fmt.Println(canCrawl)
 	fmt.Println(err)
+	fmt.Println(protocolResult.Protocol.Sitemaps())
+	fmt.Println(protocolResult.Protocol.URL())
+	fmt.Println(protocolResult.Protocol.CrawlDelay("googlebot"))
 	// Output:
 	// <nil>
 	// <nil>
 	// false
 	// <nil>
+	// [https://www.dumpsters.com/sitemap.xml https://www.dumpsters.com/sitemap-launch-index.xml]
+	// https://www.dumpsters.com:443
+	// 5s
 }
 
 func ExampleNewFromURL() {
 	ch := make(chan robotstxt.ProtocolResult)
 	go robotstxt.NewFromURL("https://www.dumpsters.com", ch)
-	robotsTxt := <-ch
+	protocolResult := <-ch
 
-	fmt.Println(robotsTxt.Error)
-	canCrawl, err := robotsTxt.Protocol.CanCrawl("googlebot", "/bdso/pages")
+	fmt.Println(protocolResult.Error)
+	canCrawl, err := protocolResult.Protocol.CanCrawl("googlebot", "/bdso/pages")
 	fmt.Println(canCrawl)
 	fmt.Println(err)
+	fmt.Println(protocolResult.Protocol.Sitemaps())
+	fmt.Println(protocolResult.Protocol.URL())
+	fmt.Println(protocolResult.Protocol.CrawlDelay("googlebot"))
 	// <nil>
 	// false
 	// <nil>
+	// [https://www.dumpsters.com/sitemap.xml https://www.dumpsters.com/sitemap-launch-index.xml]
+	// https://www.dumpsters.com:443
+	// 5s
 }
 
 func ExampleRobotsTxt_CanCrawl() {
@@ -479,72 +497,6 @@ Sitemap: https://www.dumpsters.com/sitemap-launch-index.xml
 	fmt.Println(robotsTxt.CrawlDelay("googlebot"))
 	// Output:
 	// 5s
-}
-
-func ExampleRobotsTxt_Sitemaps() {
-	robotsTxt, _ := robotstxt.New("https://www.dumpsters.com", `
-# Robots.txt test file
-# 06/04/2018
-      # Indented comments are allowed
-
-User-agent : *
-Crawl-delay: 5
-Disallow: /cms/
-Disallow: /pricing/frontend
-Disallow: /pricing/admin/ # SPA application built into the site
-Disallow : *?s=lightbox
-Disallow: /se/en$
-Disallow:*/retail/*/frontend/*
-
-Allow: /be/fr_fr/retail/fr/
-
-# Multiple groups with all access
-User-agent: AdsBot-Google
-User-agent: AdsBot-Bing
-Allow: /
-
-# Multiple sitemaps
-Sitemap: https://www.dumpsters.com/sitemap.xml
-Sitemap: https://www.dumpsters.com/sitemap-launch-index.xml
-`)
-	fmt.Println(robotsTxt.Sitemaps())
-	// Output:
-	// [https://www.dumpsters.com/sitemap.xml https://www.dumpsters.com/sitemap-launch-index.xml]
-}
-
-func ExampleRobotsTxt_URL() {
-	robotsTxt, _ := robotstxt.New("https://www.dumpsters.com", `
-# Robots.txt test file
-# 06/04/2018
-      # Indented comments are allowed
-
-User-agent : *
-Crawl-delay: 5
-Disallow: /cms/
-Disallow: /pricing/frontend
-Disallow: /pricing/admin/ # SPA application built into the site
-Disallow : *?s=lightbox
-Disallow: /se/en$
-Disallow:*/retail/*/frontend/*
-
-Allow: /be/fr_fr/retail/fr/
-
-# Multiple groups with all access
-User-agent: AdsBot-Google
-User-agent: AdsBot-Bing
-Allow: /
-
-# Multiple sitemaps
-Sitemap: https://www.dumpsters.com/sitemap.xml
-Sitemap: https://www.dumpsters.com/sitemap-launch-index.xml
-`)
-	fmt.Println(robotsTxt.URL())
-
-	robotsTxt, _ = robotstxt.New("http://www.dumpsters.com:4000", ``)
-	fmt.Println(robotsTxt.URL())
-	// Output:
-	// https://www.dumpsters.com:443
-	// http://www.dumpsters.com:4000
 }
 
 /*
