@@ -7,6 +7,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 )
 
@@ -19,8 +20,8 @@ func parse(url string, reader io.Reader) (RobotsExclusionProtocol, error) {
 
 	robotsTxt := robotsTxt{}
 	robots := make(map[string]robot)
-	currentUserAgents := make([]string, 0)
-	endUserAgents := false
+	currentUserAgents := make([]string, 1) // User agents that are part of the same group.
+	endUserAgents := false                 // Are we still processing user agents as part of the same group.
 	lineScanner := bufio.NewScanner(reader)
 	lineScanner.Split(bufio.ScanLines)
 	for lineNumber := 1; lineScanner.Scan(); lineNumber++ {
@@ -67,7 +68,7 @@ func parse(url string, reader io.Reader) (RobotsExclusionProtocol, error) {
 		case "allow":
 			for _, userAgent := range currentUserAgents {
 				robot := robots[userAgent]
-				robot.allowed = append(robots[userAgent].allowed, value)
+				robot.allowed = append(robot.allowed, value)
 				robots[userAgent] = robot
 			}
 			endUserAgents = true
@@ -75,7 +76,7 @@ func parse(url string, reader io.Reader) (RobotsExclusionProtocol, error) {
 		case "disallow":
 			for _, userAgent := range currentUserAgents {
 				robot := robots[userAgent]
-				robot.disallowed = append(robots[userAgent].disallowed, value)
+				robot.disallowed = append(robot.disallowed, value)
 				robots[userAgent] = robot
 			}
 			endUserAgents = true
@@ -92,7 +93,7 @@ func parse(url string, reader io.Reader) (RobotsExclusionProtocol, error) {
 			}
 			for _, userAgent := range currentUserAgents {
 				robot := robots[userAgent]
-				robot.crawlDelay = valueInt
+				robot.crawlDelay = time.Duration(valueInt) * time.Second
 				robots[userAgent] = robot
 			}
 			endUserAgents = true

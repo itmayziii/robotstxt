@@ -42,6 +42,7 @@ import (
 	netUrl "net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 var httpGet = http.Get
@@ -59,7 +60,7 @@ type RobotsExclusionProtocol interface {
 	// Getter that returns the URL a particular robots.txt file is associated with, i.e. https://www.dumpsters.com.
 	URL() string
 	// How long should a robot wait between accessing pages on a site.
-	CrawlDelay(robotName string) int
+	CrawlDelay(robotName string) time.Duration
 }
 
 // ProtocolResult is used for concurrent operations such as NewFromFile and NewFromURL.
@@ -143,7 +144,7 @@ type robotsTxt struct {
 type robot struct {
 	disallowed []string
 	allowed    []string
-	crawlDelay int
+	crawlDelay time.Duration
 }
 
 func (robotsTxt robotsTxt) CanCrawl(robotName, url string) (bool, error) {
@@ -194,7 +195,7 @@ func (robotsTxt robotsTxt) CanCrawl(robotName, url string) (bool, error) {
 	return disallowedLength == 0 || allowedLength >= disallowedLength, nil
 }
 
-func (robotsTxt robotsTxt) CrawlDelay(robotName string) int {
+func (robotsTxt robotsTxt) CrawlDelay(robotName string) time.Duration {
 	robot, _ := findMatchingRobot(robotName, robotsTxt.robots)
 	return robot.crawlDelay
 }

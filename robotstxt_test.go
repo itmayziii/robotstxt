@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 // Test cases derived from https://developers.google.com/search/reference/robots_txt#url-matching-based-on-path-values.
@@ -178,6 +179,10 @@ Allow: /
 # Multiple sitemaps
 Sitemap: https://www.dumpsters.com/sitemap.xml
 Sitemap: https://www.dumpsters.com/sitemap-launch-index.xml
+
+# Some odd cases are added below
+user-agent test # Invalid line without a colon
+: # Just a colon
 `)
 	assert.Nil(t, err)
 }
@@ -283,8 +288,8 @@ Sitemap: https://www.dumpsters.com/sitemap-launch-index.xml
 		{url: "/online/frontend/", crawlable: true, hasError: false},
 	})
 
-	assert.Equal(t, 5, robotsTxt.CrawlDelay("googlebot"))
-	assert.Equal(t, 0, robotsTxt.CrawlDelay("adsbot-google"))
+	assert.Equal(t, 5*time.Second, robotsTxt.CrawlDelay("googlebot"))
+	assert.Equal(t, 0*time.Second, robotsTxt.CrawlDelay("adsbot-google"))
 	assert.Equal(t, []string{"https://www.dumpsters.com/sitemap.xml", "https://www.dumpsters.com/sitemap-launch-index.xml"}, robotsTxt.Sitemaps())
 }
 
