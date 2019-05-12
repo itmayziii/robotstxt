@@ -57,7 +57,8 @@ type RobotsExclusionProtocol interface {
 	CanCrawl(robotName, url string) (bool, error)
 	// Returns the sitemaps that are defined in the robots.txt.
 	Sitemaps() []string
-	// Getter that returns the URL a particular robots.txt file is associated with, i.e. https://www.dumpsters.com.
+	// Getter that returns the URL a particular robots.txt file is associated with,
+	// i.e. https://www.dumpsters.com:443. The port is assumed from the protocol if it is not provided during creation.
 	URL() string
 	// How long should a robot wait between accessing pages on a site.
 	CrawlDelay(robotName string) time.Duration

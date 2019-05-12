@@ -112,5 +112,5 @@ func normalizeUrl(url string) (string, error) {
 		return parsedUrl.Scheme + "://" + parsedUrl.Host, nil
 	}
 
-	return parsedUrl.Scheme + "://" + parsedUrl.Host + ":" + urlPort, nil
+	return parsedUrl.Scheme + "://" + parsedUrl.Hostname() + ":" + urlPort, nil
 }
