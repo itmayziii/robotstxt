@@ -86,7 +86,7 @@ A large portion of how this package handles the specification comes from https:/
 In fact this package tests against all of the examples listed at
 https://developers.google.com/search/reference/robots_txt#url-matching-based-on-path-values plus many more.
 
-Important Notes From the Spec
+### Important Notes From the Spec
 
 1. User Agents are case insensitive so "googlebot" and "Googlebot" are the same thing.
 
