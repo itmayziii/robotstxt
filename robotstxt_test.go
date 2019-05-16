@@ -435,7 +435,7 @@ type testUrl struct {
 }
 
 // I know it's bad to write code for tests, but testing each thing was painful and this will be consistent / less human error prone
-func testRobot(t *testing.T, robotName string, robotsTxt robotstxt.RobotsTxt, testUrls []testUrl) {
+func testRobot(t *testing.T, robotName string, robotsTxt *robotstxt.RobotsTxt, testUrls []testUrl) {
 	for _, test := range testUrls {
 		canCrawl, err := robotsTxt.CanCrawl(robotName, test.url)
 		hasError := err != nil

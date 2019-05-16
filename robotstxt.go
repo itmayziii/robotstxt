@@ -45,25 +45,25 @@ import (
 )
 
 // New creates a RobotsTxt.
-func New(url string, robotsTxtReader io.Reader) (RobotsTxt, error) {
+func New(url string, robotsTxtReader io.Reader) (*RobotsTxt, error) {
 	return parse(url, robotsTxtReader)
 }
 
 // NewFromFile is a convenience function that creates a RobotsTxt from a local file.
-func NewFromFile(url, path string) (RobotsTxt, error) {
+func NewFromFile(url, path string) (*RobotsTxt, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return RobotsTxt{}, err
+		return &RobotsTxt{}, err
 	}
 
 	robotsTxt, err := parse(url, file)
 	if err != nil {
-		return RobotsTxt{}, err
+		return &RobotsTxt{}, err
 	}
 
 	err = file.Close()
 	if err != nil {
-		return RobotsTxt{}, err
+		return &RobotsTxt{}, err
 	}
 	return robotsTxt, nil
 }
@@ -80,10 +80,10 @@ The following are examples of only looking at the top level for /robots.txt:
  https://www.dumpsters.com                            -> https://www.dumpsters.com/robots.txt
  https://www.dumpsters.com/robots.txt                 -> https://www.dumpsters.com/robots.txt
 */
-func NewFromURL(url string, getFn func(url string) (resp *http.Response, err error)) (RobotsTxt, error) {
+func NewFromURL(url string, getFn func(url string) (resp *http.Response, err error)) (*RobotsTxt, error) {
 	parsedUrl, err := netUrl.Parse(url)
 	if err != nil {
-		return RobotsTxt{}, err
+		return &RobotsTxt{}, err
 	}
 
 	normalizedUrl := parsedUrl.Scheme + "://" + parsedUrl.Hostname()
@@ -94,17 +94,17 @@ func NewFromURL(url string, getFn func(url string) (resp *http.Response, err err
 
 	resp, err := getFn(normalizedUrl + "/robots.txt")
 	if err != nil {
-		return RobotsTxt{}, err
+		return &RobotsTxt{}, err
 	}
 
 	robotsTxtBody, err := parseRobotsTxtBody(resp.Body)
 	if err != nil {
-		return RobotsTxt{}, err
+		return &RobotsTxt{}, err
 	}
 
 	err = resp.Body.Close()
 	if err != nil {
-		return RobotsTxt{}, err
+		return &RobotsTxt{}, err
 	}
 	return New(url, strings.NewReader(robotsTxtBody))
 }
@@ -126,7 +126,7 @@ type robot struct {
 }
 
 // CanCrawl determines whether or not a given robot (user-agent) is allowed to crawl a URL based on allow and disallow directives in the robots.txt.
-func (robotsTxt RobotsTxt) CanCrawl(robotName, url string) (bool, error) {
+func (robotsTxt *RobotsTxt) CanCrawl(robotName, url string) (bool, error) {
 	robot, exists := findMatchingRobot(robotName, robotsTxt.robots)
 	if !exists {
 		return true, nil
@@ -175,19 +175,19 @@ func (robotsTxt RobotsTxt) CanCrawl(robotName, url string) (bool, error) {
 }
 
 // How long should a robot wait between accessing pages on a site.
-func (robotsTxt RobotsTxt) CrawlDelay(robotName string) time.Duration {
+func (robotsTxt *RobotsTxt) CrawlDelay(robotName string) time.Duration {
 	robot, _ := findMatchingRobot(robotName, robotsTxt.robots)
 	return robot.crawlDelay
 }
 
 // Returns the sitemaps that are defined in the robots.txt.
-func (robotsTxt RobotsTxt) Sitemaps() []string {
+func (robotsTxt *RobotsTxt) Sitemaps() []string {
 	return robotsTxt.sitemaps
 }
 
 // Getter that returns the URL a particular robots.txt file is associated with, i.e. https://www.dumpsters.com:443. The port is assumed from the
 // protocol if it is not provided during creation.
-func (robotsTxt RobotsTxt) URL() string {
+func (robotsTxt *RobotsTxt) URL() string {
 	return robotsTxt.url
 }
 

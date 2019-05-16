@@ -12,13 +12,13 @@ import (
 
 var validateUTF8 = utf8.ValidString
 
-func parse(url string, reader io.Reader) (RobotsTxt, error) {
+func parse(url string, reader io.Reader) (*RobotsTxt, error) {
 	normalizedUrl, err := normalizeUrl(url)
 	if err != nil {
-		return RobotsTxt{}, err
+		return &RobotsTxt{}, err
 	}
 
-	robotsTxt := RobotsTxt{}
+	robotsTxt := &RobotsTxt{}
 	robots := make(map[string]robot)
 	currentUserAgents := make([]string, 1) // User agents that are part of the same group.
 	endUserAgents := false                 // Are we still processing user agents as part of the same group.
