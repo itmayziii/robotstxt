@@ -1,5 +1,6 @@
 # robotstxt
 Package robotstxt implements the Robots Exclusion Protocol, https://en.wikipedia.org/wiki/Robots_exclusion_standard, with a simple API.
+This repo also exclusively uses [Go Modules](https://github.com/golang/go/wiki/Modules).
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/itmayziii/robotstxt)](https://goreportcard.com/report/github.com/itmayziii/robotstxt)
 [![](https://godoc.org/github.com/itmayziii/robotstxt?status.svg)](https://godoc.org/github.com/itmayziii/robotstxt)
@@ -11,27 +12,34 @@ Link to the GoDocs -> [here](https://godoc.org/github.com/itmayziii/robotstxt).
 ## Basic Examples
 
 ### 1. Creating a robotsTxt with a URL
-This is the most common way to use this package.
+This is the most common way to use this package since most robots.txt files you will be interested in will be on a server somewhere. This library 
+gives you the freedom to specify the `Get` method you want to use to make the HTTP request. This is useful for people that may want to use their 
+own `http.Client`. 
 ```go
 package main
 
 import (
     "fmt"
-    "github.com/itmayziii/robotstxt"
+	"github.com/itmayziii/robotstxt/v2"
+    "net/http"
 )
 
 func main () {
-	ch := make(chan robotstxt.ProtocolResult)
-	go robotstxt.NewFromURL("https://www.dumpsters.com", ch)
-	robotsTxt := <-ch
-	
-	fmt.Println(robotsTxt.Error)
-	canCrawl, err := robotsTxt.Protocol.CanCrawl("googlebot", "/bdso/pages")
+	robotsTxt, err := robotstxt.NewFromURL("https://www.dumpsters.com", http.Get)
+	fmt.Println(err)
+
+	canCrawl, err := robotsTxt.CanCrawl("googlebot", "/bdso/pages")
 	fmt.Println(canCrawl)
 	fmt.Println(err)
+	fmt.Println(robotsTxt.Sitemaps())
+	fmt.Println(robotsTxt.URL())
+	fmt.Println(robotsTxt.CrawlDelay("googlebot"))
 	// <nil>
 	// false
 	// <nil>
+	// [https://www.dumpsters.com/sitemap.xml https://www.dumpsters.com/sitemap-launch-index.xml]
+	// https://www.dumpsters.com:443
+	// 5s
 }
 ```
 
@@ -42,11 +50,12 @@ package main
 
 import (
     "fmt"
-    "github.com/itmayziii/robotstxt"
+	"github.com/itmayziii/robotstxt/v2"
+    "strings"
 )
 
 func main () {
-    robotsTxt, _ := robotstxt.New("", `
+    robotsTxt, _ := robotstxt.New("", strings.NewReader(`
 # Robots.txt test file
 # 06/04/2018
     # Indented comments are allowed
@@ -70,7 +79,7 @@ Allow: /
 # Multiple sitemaps
 Sitemap: https://www.dumpsters.com/sitemap.xml
 Sitemap: https://www.dumpsters.com/sitemap-launch-index.xml
-`)
+`))
     canCrawl, err := robotsTxt.CanCrawl("googlebot", "/cms/pages")
     fmt.Println(canCrawl)
     fmt.Println(err)
@@ -103,10 +112,10 @@ i.e. `disallow: /cms/` loses to `allow: /cms/` and to `allow: /cms*` but not to 
 https://developers.google.com/search/reference/robots_txt#file-location--range-of-validity. This package validates the host, protocol,
 and port number every time it is asked if a robot "CanCrawl" a path and the path contains the host, protocol, and port.
 ```go
- robotsTxt := robotstxt.New("https://www.dumpsters.com", `
+ robotsTxt := robotstxt.New("https://www.dumpsters.com", strings.NewReader(`
      User-agent: *
      Disallow: "/wiki/"
- `)
+ `))
  robotsTxt.CanCrawl("googlebot", "/products/") // True
  robotsTxt.CanCrawl("googlebot", "https://www.dumpsters.com/products/") // True
  robotsTxt.CanCrawl("googlebot", "http://www.dumpsters.com/products/") // False - the URL did not match the URL provided when "robotsTxt" was created
