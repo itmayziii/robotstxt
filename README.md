@@ -20,7 +20,7 @@ package main
 
 import (
     "fmt"
-	"github.com/itmayziii/robotstxt/v2"
+    "github.com/itmayziii/robotstxt/v2"
     "net/http"
 )
 
@@ -50,7 +50,7 @@ package main
 
 import (
     "fmt"
-	"github.com/itmayziii/robotstxt/v2"
+    "github.com/itmayziii/robotstxt/v2"
     "strings"
 )
 
