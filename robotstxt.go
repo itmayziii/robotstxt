@@ -72,6 +72,7 @@ func NewFromFile(url, path string) (RobotsTxt, error) {
 NewFromURL is a convenience function that retrieves a robots.txt for a given scheme, host,and an optional port number. According to the spec the
 robots.txt file must always live at the top level directory,
 https://developers.google.com/search/reference/robots_txt#file-location--range-of-validity, so everything that is not the top level is ignored.
+It is expected that the "getFn" passed in is capable of doing the HTTP request, usually coming from "http.Get" or the "http.Client.Get".
 
 The following are examples of only looking at the top level for /robots.txt:
  Given:                                                  Looks for:
