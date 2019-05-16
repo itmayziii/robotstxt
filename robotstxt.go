@@ -174,19 +174,19 @@ func (robotsTxt *RobotsTxt) CanCrawl(robotName, url string) (bool, error) {
 	return disallowedLength == 0 || allowedLength >= disallowedLength, nil
 }
 
-// How long should a robot wait between accessing pages on a site.
+// CrawlDelay is how long a robot will wait between accessing pages on a site.
 func (robotsTxt *RobotsTxt) CrawlDelay(robotName string) time.Duration {
 	robot, _ := findMatchingRobot(robotName, robotsTxt.robots)
 	return robot.crawlDelay
 }
 
-// Returns the sitemaps that are defined in the robots.txt.
+// Sitemaps returns the sitemaps that are defined in the robots.txt.
 func (robotsTxt *RobotsTxt) Sitemaps() []string {
 	return robotsTxt.sitemaps
 }
 
-// Getter that returns the URL a particular robots.txt file is associated with, i.e. https://www.dumpsters.com:443. The port is assumed from the
-// protocol if it is not provided during creation.
+// URL is a getter that returns the URL a particular robots.txt file is associated with, i.e. https://www.dumpsters.com:443. The port is assumed from
+// the protocol if it is not provided during creation.
 func (robotsTxt *RobotsTxt) URL() string {
 	return robotsTxt.url
 }
