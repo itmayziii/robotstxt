@@ -11,7 +11,7 @@ Link to the GoDocs -> [here](https://godoc.org/github.com/itmayziii/robotstxt).
 
 ## Basic Examples
 
-### 1. Creating a robotsTxt with a URL
+### 1. Creating a RobotsTxt with a URL
 This is the most common way to use this package since most robots.txt files you will be interested in will be on a server somewhere. This library 
 gives you the freedom to specify the `Get` method you want to use to make the HTTP request. This is useful for people that may want to use their 
 own `http.Client`. 
@@ -43,7 +43,7 @@ func main () {
 }
 ```
 
-### 2. Creating a robotsTxt Manually
+### 2. Creating a RobotsTxt Manually
 You likely will not be doing this method as you would need to parse get the robots.txt from the server yourself.
 ```go
 package main
