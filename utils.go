@@ -2,19 +2,10 @@ package robotstxt
 
 import (
 	"errors"
-	"io"
-	"log"
 	netUrl "net/url"
 	"regexp"
 	"strings"
 )
-
-func safeClose(c io.Closer) {
-	err := c.Close()
-	if err != nil {
-		log.Println(err)
-	}
-}
 
 func urlMatchLength(url string, paths []string) (int, error) {
 	if paths == nil || len(paths) == 0 {

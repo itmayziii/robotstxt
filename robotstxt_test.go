@@ -2,9 +2,12 @@ package robotstxt_test
 
 import (
 	"fmt"
-	"github.com/itmayziii/robotstxt"
+	"github.com/itmayziii/robotstxt/v2"
 	"github.com/stretchr/testify/assert"
+	"io"
+	"net/http"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -13,10 +16,10 @@ import (
 func Test_examples_mentioned_in_google_spec(t *testing.T) {
 	// Matches the root and any lower level URL.
 	t.Run("/", func(t *testing.T) {
-		robotsTxt, err := robotstxt.New("https://www.dumpsters.com", `
+		robotsTxt, err := robotstxt.New("https://www.dumpsters.com", strings.NewReader(`
 User-Agent: *
 Disallow: /
-`)
+`))
 		assert.Nil(t, err)
 
 		testRobot(t, "Bingbot", robotsTxt, []testUrl{
@@ -30,10 +33,10 @@ Disallow: /
 
 	// Equivalent to /. The trailing wildcard is ignored
 	t.Run("/*", func(t *testing.T) {
-		robotsTxt, err := robotstxt.New("https://www.dumpsters.com", `
+		robotsTxt, err := robotstxt.New("https://www.dumpsters.com", strings.NewReader(`
 User-Agent: *
 Disallow: /*
-`)
+`))
 		assert.Nil(t, err)
 
 		testRobot(t, "Bingbot", robotsTxt, []testUrl{
@@ -46,10 +49,10 @@ Disallow: /*
 	})
 
 	t.Run("/fish", func(t *testing.T) {
-		robotsTxt, err := robotstxt.New("https://www.dumpsters.com", `
+		robotsTxt, err := robotstxt.New("https://www.dumpsters.com", strings.NewReader(`
 User-Agent: *
 Disallow: /fish
-`)
+`))
 		assert.Nil(t, err)
 
 		testRobot(t, "Bingbot", robotsTxt, []testUrl{
@@ -67,10 +70,10 @@ Disallow: /fish
 
 	// Equivalent to /fish. The trailing wildcard is ignored.
 	t.Run("/fish*", func(t *testing.T) {
-		robotsTxt, err := robotstxt.New("https://www.dumpsters.com", `
+		robotsTxt, err := robotstxt.New("https://www.dumpsters.com", strings.NewReader(`
 User-Agent: *
 Disallow: /fish*
-`)
+`))
 		assert.Nil(t, err)
 
 		testRobot(t, "Bingbot", robotsTxt, []testUrl{
@@ -88,10 +91,10 @@ Disallow: /fish*
 
 	// Equivalent to /fish. The trailing wildcard is ignored.
 	t.Run("/fish/", func(t *testing.T) {
-		robotsTxt, err := robotstxt.New("https://www.dumpsters.com", `
+		robotsTxt, err := robotstxt.New("https://www.dumpsters.com", strings.NewReader(`
 User-Agent: *
 Disallow: /fish/
-`)
+`))
 		assert.Nil(t, err)
 
 		testRobot(t, "Bingbot", robotsTxt, []testUrl{
@@ -105,10 +108,10 @@ Disallow: /fish/
 	})
 
 	t.Run("/*.php", func(t *testing.T) {
-		robotsTxt, err := robotstxt.New("https://www.dumpsters.com", `
+		robotsTxt, err := robotstxt.New("https://www.dumpsters.com", strings.NewReader(`
 User-Agent: *
 Disallow: /*.php
-`)
+`))
 		assert.Nil(t, err)
 
 		testRobot(t, "Bingbot", robotsTxt, []testUrl{
@@ -123,10 +126,10 @@ Disallow: /*.php
 	})
 
 	t.Run("/*.php$", func(t *testing.T) {
-		robotsTxt, err := robotstxt.New("https://www.dumpsters.com", `
+		robotsTxt, err := robotstxt.New("https://www.dumpsters.com", strings.NewReader(`
 User-Agent: *
 Disallow: /*.php$
-`)
+`))
 		assert.Nil(t, err)
 
 		testRobot(t, "Bingbot", robotsTxt, []testUrl{
@@ -140,10 +143,10 @@ Disallow: /*.php$
 	})
 
 	t.Run("/fish*.php", func(t *testing.T) {
-		robotsTxt, err := robotstxt.New("https://www.dumpsters.com", `
+		robotsTxt, err := robotstxt.New("https://www.dumpsters.com", strings.NewReader(`
 User-Agent: *
 Disallow: /fish*.php
-`)
+`))
 		assert.Nil(t, err)
 
 		testRobot(t, "Bingbot", robotsTxt, []testUrl{
@@ -160,18 +163,12 @@ func TestNew(t *testing.T) {
 }
 
 func TestNew_fails_if_no_scheme_is_provided(t *testing.T) {
-	_, err := robotstxt.New("www.dumpsters.com", `
-User-Agent: *
-Disallow: /cms
-`)
+	_, err := robotstxt.New("www.dumpsters.com", getExampleRobotsTxt())
 	assert.NotNil(t, err)
 }
 
 func TestNew_fails_if_no_host_is_provided(t *testing.T) {
-	_, err := robotstxt.New("https://", `
-User-Agent: *
-Disallow: /cms
-`)
+	_, err := robotstxt.New("https://", getExampleRobotsTxt())
 	assert.NotNil(t, err)
 }
 
@@ -179,11 +176,8 @@ func TestNewFromFile(t *testing.T) {
 	filePath, err := filepath.Abs("./robots.txt")
 	assert.Nil(t, err)
 
-	ch := make(chan robotstxt.ProtocolResult)
-	go robotstxt.NewFromFile("https://www.dumpsters.com", filePath, ch)
-	protocolResult := <-ch
-
-	assert.Nil(t, protocolResult.Error)
+	_, err = robotstxt.NewFromFile("https://www.dumpsters.com", filePath)
+	assert.Nil(t, err)
 }
 
 func TestRobotsTxt_CanCrawl(t *testing.T) {
@@ -350,7 +344,7 @@ func BenchmarkRobotsTxt_CanCrawl_multiple_times(b *testing.B) {
  */
 
 func ExampleNew() {
-	robotsTxt, _ := robotstxt.New("https://www.dumpsters.com", `
+	robotsTxt, _ := robotstxt.New("https://www.dumpsters.com", strings.NewReader(`
 # Robots.txt test file
 # 06/04/2018
       # Indented comments are allowed
@@ -374,7 +368,7 @@ Allow: /
 # Multiple sitemaps
 Sitemap: https://www.dumpsters.com/sitemap.xml
 Sitemap: https://www.dumpsters.com/sitemap-launch-index.xml
-`)
+`))
 	canCrawl, err := robotsTxt.CanCrawl("googlebot", "/cms/pages")
 	fmt.Println(canCrawl)
 	fmt.Println(err)
@@ -393,17 +387,15 @@ func ExampleNewFromFile() {
 	filePath, err := filepath.Abs("./robots.txt")
 	fmt.Println(err)
 
-	ch := make(chan robotstxt.ProtocolResult)
-	go robotstxt.NewFromFile("https://www.dumpsters.com", filePath, ch)
-	protocolResult := <-ch
+	robotsTxt, err := robotstxt.NewFromFile("https://www.dumpsters.com", filePath)
+	fmt.Println(err)
 
-	fmt.Println(protocolResult.Error)
-	canCrawl, err := protocolResult.Protocol.CanCrawl("googlebot", "/cms/pages")
+	canCrawl, err := robotsTxt.CanCrawl("googlebot", "/cms/pages")
 	fmt.Println(canCrawl)
 	fmt.Println(err)
-	fmt.Println(protocolResult.Protocol.Sitemaps())
-	fmt.Println(protocolResult.Protocol.URL())
-	fmt.Println(protocolResult.Protocol.CrawlDelay("googlebot"))
+	fmt.Println(robotsTxt.Sitemaps())
+	fmt.Println(robotsTxt.URL())
+	fmt.Println(robotsTxt.CrawlDelay("googlebot"))
 	// Output:
 	// <nil>
 	// <nil>
@@ -415,17 +407,15 @@ func ExampleNewFromFile() {
 }
 
 func ExampleNewFromURL() {
-	ch := make(chan robotstxt.ProtocolResult)
-	go robotstxt.NewFromURL("https://www.dumpsters.com", ch)
-	protocolResult := <-ch
+	robotsTxt, err := robotstxt.NewFromURL("https://www.dumpsters.com", http.Get)
+	fmt.Println(err)
 
-	fmt.Println(protocolResult.Error)
-	canCrawl, err := protocolResult.Protocol.CanCrawl("googlebot", "/bdso/pages")
+	canCrawl, err := robotsTxt.CanCrawl("googlebot", "/bdso/pages")
 	fmt.Println(canCrawl)
 	fmt.Println(err)
-	fmt.Println(protocolResult.Protocol.Sitemaps())
-	fmt.Println(protocolResult.Protocol.URL())
-	fmt.Println(protocolResult.Protocol.CrawlDelay("googlebot"))
+	fmt.Println(robotsTxt.Sitemaps())
+	fmt.Println(robotsTxt.URL())
+	fmt.Println(robotsTxt.CrawlDelay("googlebot"))
 	// <nil>
 	// false
 	// <nil>
@@ -445,7 +435,7 @@ type testUrl struct {
 }
 
 // I know it's bad to write code for tests, but testing each thing was painful and this will be consistent / less human error prone
-func testRobot(t *testing.T, robotName string, robotsTxt robotstxt.RobotsExclusionProtocol, testUrls []testUrl) {
+func testRobot(t *testing.T, robotName string, robotsTxt robotstxt.RobotsTxt, testUrls []testUrl) {
 	for _, test := range testUrls {
 		canCrawl, err := robotsTxt.CanCrawl(robotName, test.url)
 		hasError := err != nil
@@ -453,8 +443,8 @@ func testRobot(t *testing.T, robotName string, robotsTxt robotstxt.RobotsExclusi
 	}
 }
 
-func getExampleRobotsTxt() string {
-	return `
+func getExampleRobotsTxt() io.Reader {
+	return strings.NewReader(`
 # Robots.txt test file
 # 06/04/2018
       # Indented comments are allowed
@@ -482,5 +472,5 @@ Sitemap: https://www.dumpsters.com/sitemap-launch-index.xml
 # Some odd cases are added below
 user-agent test # Invalid line without a colon
 : # Just a colon
-`
+`)
 }

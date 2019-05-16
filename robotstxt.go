@@ -37,7 +37,6 @@ import (
 	"errors"
 	"golang.org/x/net/html"
 	"io"
-	"log"
 	"net/http"
 	netUrl "net/url"
 	"os"
@@ -45,70 +44,45 @@ import (
 	"time"
 )
 
-var httpGet = http.Get
-
-// RobotsExclusionProtocol exposes all of the things you would want to know about a robots.txt file without giving direct access to the directives
-// defined. Directives such as allow and disallow are not important for a robot (user-agent) to know about, they are implementation details,
-// instead a robot just needs to know if it is allowed to crawl a given path so this interface provides a "CanCrawl" method as opposed to giving you
-// direct access to allow and disallow.
-type RobotsExclusionProtocol interface {
-	// CanCrawl determines whether or not a given robot (user-agent) is allowed to crawl a URL based on allow and disallow directives in the
-	// robots.txt.
-	CanCrawl(robotName, url string) (bool, error)
-	// Returns the sitemaps that are defined in the robots.txt.
-	Sitemaps() []string
-	// Getter that returns the URL a particular robots.txt file is associated with,
-	// i.e. https://www.dumpsters.com:443. The port is assumed from the protocol if it is not provided during creation.
-	URL() string
-	// How long should a robot wait between accessing pages on a site.
-	CrawlDelay(robotName string) time.Duration
+// New creates a RobotsTxt.
+func New(url string, robotsTxtReader io.Reader) (RobotsTxt, error) {
+	return parse(url, robotsTxtReader)
 }
 
-// ProtocolResult is used for concurrent operations such as NewFromFile and NewFromURL.
-type ProtocolResult struct {
-	Protocol RobotsExclusionProtocol
-	Error    error
-}
-
-// New creates an implementation of RobotsExclusionProtocol.
-func New(url, robotsTxtContent string) (RobotsExclusionProtocol, error) {
-	reader := strings.NewReader(robotsTxtContent)
-	return parse(url, reader)
-}
-
-// NewFromFile creates an implementation of RobotsExclusionProtocol from a local file.
-func NewFromFile(url, filePath string, ch chan ProtocolResult) {
-	defer close(ch)
-	file, err := os.Open(filePath)
+// NewFromFile is a convenience function that creates a RobotsTxt from a local file.
+func NewFromFile(url, path string) (RobotsTxt, error) {
+	file, err := os.Open(path)
 	if err != nil {
-		log.Println(err)
-		ch <- ProtocolResult{Protocol: robotsTxt{}, Error: err}
-		return
+		return RobotsTxt{}, err
 	}
-	defer safeClose(file)
 
 	robotsTxt, err := parse(url, file)
-	ch <- ProtocolResult{Protocol: robotsTxt, Error: err}
+	if err != nil {
+		return RobotsTxt{}, err
+	}
+
+	err = file.Close()
+	if err != nil {
+		return RobotsTxt{}, err
+	}
+	return robotsTxt, nil
 }
 
 /*
-NewFromURL retrieves a robots.txt for a given scheme, host, and an optional port number. According to the spec the robots.txt file must always live
-at the top level directory, https://developers.google.com/search/reference/robots_txt#file-location--range-of-validity,
-so everything that is not the top level is ignored.
+NewFromURL is a convenience function that retrieves a robots.txt for a given scheme, host,and an optional port number. According to the spec the
+robots.txt file must always live at the top level directory,
+https://developers.google.com/search/reference/robots_txt#file-location--range-of-validity, so everything that is not the top level is ignored.
 
 The following are examples of only looking at the top level for /robots.txt:
-  Given:                                                  Looks for:
-  https://www.dumpsters.com/pricing/roll-off-dumpsters -> https://www.dumpsters.com/robots.txt
-  https://www.dumpsters.com                            -> https://www.dumpsters.com/robots.txt
-  https://www.dumpsters.com/robots.txt                 -> https://www.dumpsters.com/robots.txt
+ Given:                                                  Looks for:
+ https://www.dumpsters.com/pricing/roll-off-dumpsters -> https://www.dumpsters.com/robots.txt
+ https://www.dumpsters.com                            -> https://www.dumpsters.com/robots.txt
+ https://www.dumpsters.com/robots.txt                 -> https://www.dumpsters.com/robots.txt
 */
-func NewFromURL(url string, ch chan ProtocolResult) {
-	defer close(ch)
+func NewFromURL(url string, getFn func(url string) (resp *http.Response, err error)) (RobotsTxt, error) {
 	parsedUrl, err := netUrl.Parse(url)
 	if err != nil {
-		log.Println(err)
-		ch <- ProtocolResult{Protocol: robotsTxt{}, Error: err}
-		return
+		return RobotsTxt{}, err
 	}
 
 	normalizedUrl := parsedUrl.Scheme + "://" + parsedUrl.Hostname()
@@ -117,26 +91,28 @@ func NewFromURL(url string, ch chan ProtocolResult) {
 		normalizedUrl = parsedUrl.Scheme + "://" + parsedUrl.Hostname() + ":" + port
 	}
 
-	resp, err := httpGet(normalizedUrl + "/robots.txt")
+	resp, err := getFn(normalizedUrl + "/robots.txt")
 	if err != nil {
-		log.Println(err)
-		ch <- ProtocolResult{Protocol: robotsTxt{}, Error: err}
-		return
+		return RobotsTxt{}, err
 	}
-	defer safeClose(resp.Body)
 
 	robotsTxtBody, err := parseRobotsTxtBody(resp.Body)
 	if err != nil {
-		log.Println(err)
-		ch <- ProtocolResult{Protocol: robotsTxt{}, Error: err}
-		return
+		return RobotsTxt{}, err
 	}
 
-	robotsTxt, err := New(url, robotsTxtBody)
-	ch <- ProtocolResult{Protocol: robotsTxt, Error: err}
+	err = resp.Body.Close()
+	if err != nil {
+		return RobotsTxt{}, err
+	}
+	return New(url, strings.NewReader(robotsTxtBody))
 }
 
-type robotsTxt struct {
+// RobotsTxt exposes all of the things you would want to know about a robots.txt file without giving direct access to the directives
+// defined. Directives such as allow and disallow are not important for a robot (user-agent) to know about, they are implementation details,
+// instead a robot just needs to know if it is allowed to crawl a given path so this interface provides a "CanCrawl" method as opposed to giving you
+// direct access to allow and disallow.
+type RobotsTxt struct {
 	robots   map[string]robot
 	sitemaps []string
 	url      string
@@ -148,7 +124,8 @@ type robot struct {
 	crawlDelay time.Duration
 }
 
-func (robotsTxt robotsTxt) CanCrawl(robotName, url string) (bool, error) {
+// CanCrawl determines whether or not a given robot (user-agent) is allowed to crawl a URL based on allow and disallow directives in the robots.txt.
+func (robotsTxt RobotsTxt) CanCrawl(robotName, url string) (bool, error) {
 	robot, exists := findMatchingRobot(robotName, robotsTxt.robots)
 	if !exists {
 		return true, nil
@@ -170,7 +147,7 @@ func (robotsTxt robotsTxt) CanCrawl(robotName, url string) (bool, error) {
 	if parsedUrl.IsAbs() {
 		normalizedUrl, err := normalizeUrl(parsedUrl.String())
 		if err != nil {
-			log.Println(err)
+			return true, err
 		}
 		if robotsTxt.url != normalizedUrl {
 			return true, errors.New("absolute URL provided but the robot URL did not match")
@@ -196,16 +173,20 @@ func (robotsTxt robotsTxt) CanCrawl(robotName, url string) (bool, error) {
 	return disallowedLength == 0 || allowedLength >= disallowedLength, nil
 }
 
-func (robotsTxt robotsTxt) CrawlDelay(robotName string) time.Duration {
+// How long should a robot wait between accessing pages on a site.
+func (robotsTxt RobotsTxt) CrawlDelay(robotName string) time.Duration {
 	robot, _ := findMatchingRobot(robotName, robotsTxt.robots)
 	return robot.crawlDelay
 }
 
-func (robotsTxt robotsTxt) Sitemaps() []string {
+// Returns the sitemaps that are defined in the robots.txt.
+func (robotsTxt RobotsTxt) Sitemaps() []string {
 	return robotsTxt.sitemaps
 }
 
-func (robotsTxt robotsTxt) URL() string {
+// Getter that returns the URL a particular robots.txt file is associated with, i.e. https://www.dumpsters.com:443. The port is assumed from the
+// protocol if it is not provided during creation.
+func (robotsTxt RobotsTxt) URL() string {
 	return robotsTxt.url
 }
 

@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"io"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -13,14 +12,13 @@ import (
 
 var validateUTF8 = utf8.ValidString
 
-func parse(url string, reader io.Reader) (RobotsExclusionProtocol, error) {
+func parse(url string, reader io.Reader) (RobotsTxt, error) {
 	normalizedUrl, err := normalizeUrl(url)
 	if err != nil {
-		log.Println(err)
-		return robotsTxt{}, err
+		return RobotsTxt{}, err
 	}
 
-	robotsTxt := robotsTxt{}
+	robotsTxt := RobotsTxt{}
 	robots := make(map[string]robot)
 	currentUserAgents := make([]string, 1) // User agents that are part of the same group.
 	endUserAgents := false                 // Are we still processing user agents as part of the same group.
@@ -31,7 +29,6 @@ func parse(url string, reader io.Reader) (RobotsExclusionProtocol, error) {
 
 		if validateUTF8(line) == false {
 			err := errors.New("invalid encoding detected on line " + strconv.Itoa(lineNumber) + ", all characters must be UTF-8 encoded")
-			log.Println(err)
 			return robotsTxt, err
 		}
 
@@ -90,7 +87,6 @@ func parse(url string, reader io.Reader) (RobotsExclusionProtocol, error) {
 		case "crawl-delay":
 			valueInt, err := strconv.Atoi(value)
 			if err != nil {
-				log.Println("invalid crawl-delay, could not convert " + value + " to an integer")
 				return robotsTxt, err
 			}
 			for _, userAgent := range currentUserAgents {

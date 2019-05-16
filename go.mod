@@ -1,4 +1,4 @@
-module github.com/itmayziii/robotstxt
+module github.com/itmayziii/robotstxt/v2
 
 go 1.12
 

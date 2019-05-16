@@ -9,17 +9,12 @@ import (
 )
 
 func TestNewFromUrl(t *testing.T) {
-	old := httpGet
-	defer func() { httpGet = old }()
-	httpGet = func(url string) (*http.Response, error) {
+	httpGet := func(url string) (*http.Response, error) {
 		return &http.Response{Body: ioutil.NopCloser(strings.NewReader(fakeHTML()))}, nil
 	}
 
-	ch := make(chan ProtocolResult)
-	go NewFromURL("https://www.dumpsters.com", ch)
-	protocol := <-ch
-
-	assert.Nil(t, protocol.Error)
+	_, err := NewFromURL("https://www.dumpsters.com", httpGet)
+	assert.Nil(t, err)
 }
 
 func TestNew_utf8_validation(t *testing.T) {
@@ -28,9 +23,9 @@ func TestNew_utf8_validation(t *testing.T) {
 	validateUTF8 = func(s string) bool {
 		return false
 	}
-	_, err := New("https://www.dumpsters.com", `
+	_, err := New("https://www.dumpsters.com", strings.NewReader(`
 # This file is mocked to have invalid UTF8
-`)
+`))
 	assert.NotNil(t, err)
 	assert.Equal(t, "invalid encoding detected on line 1, all characters must be UTF-8 encoded", err.Error())
 }
