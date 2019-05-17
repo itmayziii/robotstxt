@@ -124,15 +124,8 @@ and port number every time it is asked if a robot "CanCrawl" a path and the path
 
 ## Roadmap
 * Respect a "noindex" meta tag and HTTP response header as described [here](https://en.wikipedia.org/wiki/Robots_exclusion_standard#Meta_tags_and_headers).
- There a couple of considerations to be taken into account before implementing this:
-  * We need to leave the current `CanCrawl` method as is since it is meant to determine whether or not a robot can crawl a page prior to actually 
-  loading the page. The "noindex" and meta tag and HTTP response header by nature of where they are located only happen after the crawler has 
-  loaded the page.
-  * Maybe 2 methods would be needed to implement this. One method that would retrieve the response for the user and hand back an instance of 
-  `RobotsExclusionProtocol` as well as the response itself, something like `CanCrawlPage`, which of course would also go through the robots.txt 
-  logic before even requesting the page. A separate second method that would take an already retrieved response that the user has goes through the 
-  same logic that the first method does. I'm not 100% sure we would need both methods but I can see why some people would want to retrieve the HTTP
-  response themselves.
+  * Add a new method something like `CanCrawlResponse` to do this work. I don't believe that CanCrawl will be able to work since it determines if a
+   page can be crawled before the page is retrieved.
 * Potentially support the Host directive as described [here](https://en.wikipedia.org/wiki/Robots_exclusion_standard#Host).
 
 ## Contributing
