@@ -1,6 +1,6 @@
 # robotstxt
 Package robotstxt implements the Robots Exclusion Protocol, https://en.wikipedia.org/wiki/Robots_exclusion_standard, with a simple API.
-This package exclusively uses [Go Modules](https://github.com/golang/go/wiki/Modules), and is currently on version v2 so make sure your import 
+This package exclusively uses [Go Modules](https://github.com/golang/go/wiki/Modules), and is currently on version v2 so make sure you import 
 `github.com/itmayziii/robotstxt/v2`.
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/itmayziii/robotstxt)](https://goreportcard.com/report/github.com/itmayziii/robotstxt)
@@ -133,4 +133,15 @@ and port number every time it is asked if a robot "CanCrawl" a path and the path
   logic before even requesting the page. A separate second method that would take an already retrieved response that the user has goes through the 
   same logic that the first method does. I'm not 100% sure we would need both methods but I can see why some people would want to retrieve the HTTP
   response themselves.
-* Potentially support the Host directive as described [here](https://en.wikipedia.org/wiki/Robots_exclusion_standard#Host).  
+* Potentially support the Host directive as described [here](https://en.wikipedia.org/wiki/Robots_exclusion_standard#Host).
+
+## Contributing
+This is an open source project so everyone is welcome to contribute.
+
+There is only 2 guidelines:
+1. The only guideline is to only open pull requests for features listed in the [roadmap](https://github.com/itmayziii/robotstxt#Roadmap) or bugs 
+listed in [issues](https://github.com/itmayziii/robotstxt/issues).
+2. Commit messages should follow the [conventional commits specification](https://www.conventionalcommits.org/en/v1.0.0-beta.2/). You can look at 
+the previous commits for this project as an example.
+
+ 
