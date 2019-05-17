@@ -1,6 +1,7 @@
 # robotstxt
 Package robotstxt implements the Robots Exclusion Protocol, https://en.wikipedia.org/wiki/Robots_exclusion_standard, with a simple API.
-This repo also exclusively uses [Go Modules](https://github.com/golang/go/wiki/Modules).
+This package exclusively uses [Go Modules](https://github.com/golang/go/wiki/Modules), and is currently on version v2 so make sure your import 
+`github.com/itmayziii/robotstxt/v2`.
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/itmayziii/robotstxt)](https://goreportcard.com/report/github.com/itmayziii/robotstxt)
 [![](https://godoc.org/github.com/itmayziii/robotstxt?status.svg)](https://godoc.org/github.com/itmayziii/robotstxt)
