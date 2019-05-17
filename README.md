@@ -139,8 +139,8 @@ and port number every time it is asked if a robot "CanCrawl" a path and the path
 This is an open source project so everyone is welcome to contribute.
 
 There is only 2 guidelines:
-1. The only guideline is to only open pull requests for features listed in the [roadmap](https://github.com/itmayziii/robotstxt#Roadmap) or bugs 
-listed in [issues](https://github.com/itmayziii/robotstxt/issues).
+1. Only open pull requests for features/bugs labeled as `enhancement` or `bug` in [issues](https://github.com/itmayziii/robotstxt/issues). This
+is to prevent you from doing work to add features that the project may not want to implement.
 2. Commit messages should follow the [conventional commits specification](https://www.conventionalcommits.org/en/v1.0.0-beta.2/). You can look at 
 the previous commits for this project as an example.
 
