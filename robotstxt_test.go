@@ -267,7 +267,7 @@ func TestRobotsTxt_CanCrawl_fails_if_robot_url_and_given_url_have_different_sche
 func TestRobotsTxt_CrawlDelay(t *testing.T) {
 	robotsTxt, err := robotstxt.New("https://www.dumpsters.com", getExampleRobotsTxt())
 	assert.Nil(t, err)
-	assert.Equal(t, 5*time.Second, robotsTxt.CrawlDelay("googlebot"))
+	assert.Equal(t, 7*time.Second, robotsTxt.CrawlDelay("googlebot"))
 }
 
 func TestRobotsTxt_Sitemaps(t *testing.T) {
